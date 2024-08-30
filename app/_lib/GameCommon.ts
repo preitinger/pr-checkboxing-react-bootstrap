@@ -52,12 +52,11 @@ export function processMove(rows: GameRow[], move: Move): GameRow[] {
     const minBox = Math.min(move.startBox, move.endBox);
     const maxBox = Math.max(move.startBox, move.endBox);
     const right = rows[move.row].subRows[move.subRow].len - maxBox - 1;
-    console.log('move', move, 'minBox', minBox, 'maxBox', maxBox, 'right', right);
      return rows.map((row, rowIdx) => rowIdx === move.row ? ({
         subRows: [
             ...row.subRows.filter((_, i) => i < move.subRow),
             ...(
-                move.startBox > 0 ? [mkSubRow(minBox, false)] : []
+                minBox > 0 ? [mkSubRow(minBox, false)] : []
             ),
             mkSubRow(maxBox - minBox + 1, true),
             ...(

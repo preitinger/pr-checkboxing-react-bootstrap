@@ -75,13 +75,12 @@ function RowComp({ row, hover, subRow, startBox, endBox, onClick, onEnter, onLea
     onEnter: (subRow: number, box: number) => void;
     onLeave: (subRow: number, box: number) => void;
   }) {
-  // console.log('render RowComp', row, subRow, startBox, endBox)
   return (
     <div className='d-flex justify-content-center'>
-      {row.subRows.map((subRow1, i) => <SubRowComp key={i} subRow={subRow1} hover={hover} startBox={subRow === i ? startBox : undefined} endBox={subRow === i ? endBox : undefined} 
-      emphasize={subRow === i} onClick={(box) => {
-        onClick(i, box);
-      }} onEnter={(box) => onEnter(i, box)} onLeave={(box) => onLeave(i, box)} />)}
+      {row.subRows.map((subRow1, i) => <SubRowComp key={i} subRow={subRow1} hover={hover} startBox={subRow === i ? startBox : undefined} endBox={subRow === i ? endBox : undefined}
+        emphasize={subRow === i} onClick={(box) => {
+          onClick(i, box);
+        }} onEnter={(box) => onEnter(i, box)} onLeave={(box) => onLeave(i, box)} />)}
     </div>
   )
 }
@@ -95,19 +94,28 @@ interface PlayProps {
   onLeave: (row: number, subRow: number, box: number) => void;
   onConfirm: () => void;
   onUndo: () => void;
+  onNewGame: () => void;
 }
 
-function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, onLeave, onConfirm, onUndo }: PlayProps) {
+function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, onLeave, onConfirm, onUndo, onNewGame }: PlayProps) {
+  const endImgRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if ((playState.type === 'humanWon' || playState.type === 'computerWon') && endImgRef.current != null) {
+      endImgRef.current.scrollIntoView();
+    }
+  }, [playState.type]);
+
   return (
     <>
-      <h1 className='mb-3'>Play</h1>
+      {/* <h1 className='mb-3'>Play</h1> */}
       {playState.type === 'selectRows' &&
         <>
           <Form>
             <Form.Label className='mb-1'>Select the number of rows in the game</Form.Label>
             <ListGroup className='mb-3'>
-              {Array.from({ length: MAX_ROWS - MIN_ROWS + 1 }).map((_, i) => i + MIN_ROWS).map(rows =>
-                <ListGroup.Item style={{ cursor: 'pointer' }} className={styles.pointer} variant='secondary' key={rows} onClick={() => rowsSelected(rows)}>{rows}</ListGroup.Item>
+              {[3, ...Array.from({ length: MAX_ROWS - MIN_ROWS + 1 }).map((_, i) => i + MIN_ROWS)].map(rows =>
+                <ListGroup.Item style={{ cursor: 'pointer' }} className={styles.pointer} variant='secondary' key={rows} onClick={() => rowsSelected(rows)}>{rows} {rows < 5 && '(No-Brainer)'} {rows === 7 && '(Hard)'} {rows > 7 && '(For math freaks)'}</ListGroup.Item>
               )}
             </ListGroup>
             {/* <Form.Select>
@@ -132,10 +140,14 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
         </>
       }
       {
-        playState.type === 'computerMove' || playState.type === 'selectSubRow' || playState.type === 'selectStrikeEnd' || playState.type === 'confirm' ?
+        playState.type === 'computerMove' || playState.type === 'selectSubRow' || playState.type === 'selectStrikeEnd' || playState.type === 'confirm' || playState.type === 'computerWon' || playState.type === 'humanWon' ?
           <>
             <Row className='align-items-center'>
-              <Col xs={12} md={6} className='mb-3'>
+              <Col xs={12} lg={6} className='mb-3'>
+                {/* <Image className='d-xs-block d-lg-none' src='/brain.png' alt='Brain' width={105} height={90} />
+                <Image className='d-none d-lg-block' src='/brain.png' alt='Brain' width={210} height={180} /> */}
+
+                <Button className='m-3' variant={playState.type === 'humanWon' || playState.type === 'computerWon' ? 'primary' : 'secondary'} onClick={onNewGame}>New Game</Button>
                 {playState.rows.map((row, i) => <RowComp
                   key={i}
                   row={row}
@@ -151,15 +163,15 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
                   onLeave={(subRow, box) => onLeave(i, subRow, box)}
                 />)}
               </Col>
-              <Col xs={12} md={6} className='ms-xs-auto ms-md-0 me-auto mb-3'>
+              <Col xs={12} lg={6} className='ms-xs-auto ms-md-0 me-auto mb-3'>
                 {
-                  (playState.type === 'computerMove' || playState.type === 'selectSubRow' || playState.type === 'selectStrikeEnd') &&
-                  <Alert >
+                  (playState.type === 'computerMove' || playState.type === 'selectSubRow' || playState.type === 'selectStrikeEnd' || playState.type === 'confirm') &&
+                  <Alert className='mb-3' style={{ height: '5em' }} >
                     {
                       playState.type === 'computerMove' ? 'Computer moving...'
                         : playState.type === 'selectSubRow' ? 'Start your move and click to the start of the range to strike.'
                           : playState.type === 'selectStrikeEnd' ? 'Finish your move and click to the end of the range to strike.'
-                            : ''
+                            : playState.type === 'confirm' ? 'Confirm or undo your move.' : ''
 
 
                     }
@@ -170,6 +182,19 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
                   <div className='d-flex justify-content-center'>
                     <Button variant="primary" className='me-1' size="lg" onClick={onConfirm}>Confirm</Button>
                     <Button variant='secondary' onClick={onUndo}>Undo</Button>
+                  </div>
+                }
+                {
+                  playState.type === 'humanWon' && <div ref={endImgRef} className='mt-4 d-flex flex-column align-items-center'>
+                    <h1 style={{ textAlign: 'center' }}>You won!</h1>
+                    {/* <Image src='/7379644_32301.jpg' width={400} height={492} alt='You won!' /> */}
+                    <img src='/tenor.gif' alt='champagne' />
+                  </div>
+                }
+                {
+                  playState.type === 'computerWon' && <div ref={endImgRef} className='mt-4 d-flex flex-column align-items-center'>
+                    <h1 style={{ textAlign: 'center' }}>Computer won!</h1>
+                    <Image src='/lost.png' width={357} height={384} alt='Computer won!' />
                   </div>
                 }
 
@@ -199,7 +224,6 @@ export default function Home() {
 
   useEffect(() => {
     function onPopState(e: PopStateEvent) {
-      console.log('onPopState: ', e.state);
       if ('type' in e.state && e.state.type === 'highscore' || e.state.type === 'play') {
         setState(e.state);
       } else {
@@ -207,12 +231,9 @@ export default function Home() {
       }
     }
     window.addEventListener('popstate', onPopState)
-    console.log('added event listener');
     // history.replaceState({type: 'highscore'}, '')
-    // console.log('replaced state');
     return () => {
       window.removeEventListener('popstate', onPopState);
-      console.log('removed event listener');
     }
   }, [])
 
@@ -221,12 +242,10 @@ export default function Home() {
   }
 
   function onBoxEnter(row: number, subRow: number, box: number) {
-    console.log('onBoxEnter: row', row, 'subRow', subRow, 'box', box);
     setState(d => enterBox(d, row, subRow, box));
   }
 
   function onBoxLeave(row: number, subRow: number, box: number) {
-    console.log('onBoxLeave: row', row, 'subRow', subRow, 'box', box);
     setState(d => leaveBox(d, row, subRow, box));
   }
 
@@ -239,20 +258,27 @@ export default function Home() {
         endBox: state.play.endBox
       }
       humanMove(gameId.current, move).then(computerMove => {
-        console.log('res of humanMove', computerMove)
         if (computerMove != null) {
           setState(d => processComputerMove(d, computerMove))
-
         }
       })
 
       setState(d => confirmMove(d));
-      console.error('nyi');
     }
   }
 
   function onMoveUndo() {
     setState(d => undoMove(d))
+  }
+
+  function onNewGame() {
+    setState({
+      type: 'play',
+      play: {
+        type: 'selectRows',
+        numRows: 7
+      }
+    })
   }
 
   return (
@@ -286,7 +312,6 @@ export default function Home() {
             playState={state.play}
             rowsSelected={(rows) => {
               setState((s) => selectRows(s, rows));
-              console.log('selected rows', rows)
             }}
             humanStartsSelected={(humanStarts) => {
               const newState = selectStarter(state, humanStarts);
@@ -294,8 +319,6 @@ export default function Home() {
               if (newState.type === 'play' && (newState.play.type === 'computerMove' || newState.play.type === 'selectSubRow')) {
                 gameStart(newState.play.rows.length, newState.play.humanStarts).then(res => {
                   const [id, computerMove] = res;
-                  console.log('res of gameStart', res);
-                  console.log('id', id, 'computerMove', computerMove)
                   gameId.current = id;
 
                   if (computerMove != null) {
@@ -310,6 +333,7 @@ export default function Home() {
             onLeave={onBoxLeave}
             onConfirm={onMoveConfirm}
             onUndo={onMoveUndo}
+            onNewGame={onNewGame}
           />
         }
         {state.type === 'about' &&

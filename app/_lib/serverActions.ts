@@ -3,6 +3,7 @@
 import { ObjectId } from "mongodb";
 import { containsUncheckedSubRow, GameRow, mkRows, Move, processMove } from "./GameCommon";
 import clientPromise from "./mongodb"
+import assert from "assert";
 
 interface GameDoc {
     rows: GameRow[];
@@ -10,20 +11,89 @@ interface GameDoc {
     moves: Move[];
 }
 
-function findComputerMove(rows: GameRow[]): Move {
-    console.error('nyi');
+function xorSum(rows: GameRow[]): number {
+    let x = 0;
+
+    for (const row of rows) {
+        for (const subRow of row.subRows) {
+            if (!subRow.checked) x ^= subRow.len;
+        }
+    }
+
+    return x;
+}
+
+function findAllMoves(rows: GameRow[]): Move[] {
+    const allMoves: Move[] = [];
 
     for (let row = 0; row < rows.length; ++row) {
-        const theRow = rows[row];
-        for (let subRow = 0; subRow < theRow.subRows.length; ++subRow) {
-            const theSubRow = theRow.subRows[subRow];
-            if (!theSubRow.checked) return {
-                row: row,
-                subRow: subRow,
-                startBox: 0,
-                endBox: theSubRow.len - 1
+        const r = rows[row];
+        for (let subRow = 0; subRow < r.subRows.length; ++subRow) {
+            const sr = r.subRows[subRow];
+            if (sr.checked) continue;
+            for (let start = 0; start < sr.len; ++start) {
+                for (let end = start; end < sr.len; ++end) {
+                    allMoves.push({
+                        row,
+                        subRow,
+                        startBox: start,
+                        endBox: end
+                    })
+                }
             }
         }
+    }
+
+    return allMoves;
+}
+
+function randomItem<T>(a: T[]): T {
+    if (a.length === 0) throw new Error('array empty!');
+    const i = Math.floor(Math.random() * a.length);
+    assert(i >= 0 && i < a.length);
+    return a[i]
+}
+
+function atLeast2SubRowsGt1(rows: GameRow[]): boolean {
+    let found = false;
+
+    for (const row of rows) {
+        for (const subRow of row.subRows) {
+            if (subRow.checked) continue;
+            if (subRow.len > 1) {
+                if (!found) {
+                    found = true;
+                } else {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+function findComputerMove(rows: GameRow[]): Move {
+    const allMoves = findAllMoves(rows);
+    const specialCase = !atLeast2SubRowsGt1(rows);
+    const sum = xorSum(rows) ^ (specialCase ? 1 : 0);
+    const winningMoves: Move[] = [];
+
+    for (const move of allMoves) {
+        const subRow = rows[move.row].subRows[move.subRow];
+        const old = subRow.len;
+        const minBox = Math.min(move.startBox, move.endBox);
+        const maxBox = Math.max(move.startBox, move.endBox);
+        const left = minBox;
+        const right = subRow.len - 1 - maxBox
+        const newSum = sum ^ old ^ left ^ right;
+        if (newSum === 0) winningMoves.push(move);
+    }
+
+    if (winningMoves.length > 0) {
+        return randomItem(winningMoves);
+    } else if (allMoves.length > 0) {
+        return randomItem(allMoves);
     }
 
     throw new Error('Game over');
@@ -66,7 +136,6 @@ export async function humanMove(id: string, move: Move): Promise<Move | null> {
         _id: objectId
     })
     if (doc == null) throw new Error('Game not found');
-    console.log('doc', doc);
     const rowsAfterHumanMove = processMove(doc.rows, move);
     if (containsUncheckedSubRow(rowsAfterHumanMove)) {
         const computerMove = findComputerMove(rowsAfterHumanMove);

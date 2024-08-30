@@ -168,12 +168,10 @@ export function selectBox1(state: State, row: number, subRow: number, box: numbe
 
 export function selectBox(state: State, row: number, subRow: number, box: number): State {
     const res = selectBox1(state, row, subRow, box);
-    console.log('result of selectBox(', row, subRow, box, ')', res);
     return res;
 }
 
 export function enterBox(state: State, row: number, subRow: number, box: number): State {
-    console.log('enterBox state', state, 'row', row, 'subRow', subRow, 'box', box);
     switch (state.type) {
         case 'play':
             switch (state.play.type) {
@@ -298,12 +296,13 @@ export function processComputerMove(state: State, move: Move): State {
         case 'play':
             switch (state.play.type) {
                 case 'computerMove':
+                    const newRows = processMove(state.play.rows, move);
                     return {
                         ...state,
                         play: {
                             ...state.play,
-                            rows: processMove(state.play.rows, move),
-                            type: 'selectSubRow',
+                            rows: newRows,
+                            type: containsUncheckedSubRow(newRows) ? 'selectSubRow' : 'humanWon',
                             hovered: null
                         }
                     }
