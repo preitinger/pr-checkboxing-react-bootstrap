@@ -100,6 +100,9 @@ interface PlayProps {
 function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, onLeave, onConfirm, onUndo, onNewGame }: PlayProps) {
   const endImgRef = useRef<HTMLDivElement>(null);
 
+  if (playState == null) throw new Error('playState nullish?!');
+  console.log('Play: playState', playState);
+
   useEffect(() => {
     if ((playState.type === 'humanWon' || playState.type === 'computerWon') && endImgRef.current != null) {
       endImgRef.current.scrollIntoView();
@@ -225,8 +228,10 @@ export default function Home() {
   useEffect(() => {
     function onPopState(e: PopStateEvent) {
       if ('type' in e.state && e.state.type === 'highscore' || e.state.type === 'play') {
+        console.error('hier problem?', e.state)
         setState(e.state);
       } else {
+        console.error('oder hier problem?')
         setState({ type: 'highscore' });
       }
     }
@@ -281,6 +286,7 @@ export default function Home() {
     })
   }
 
+
   return (
     <>
       <Container>
@@ -289,16 +295,19 @@ export default function Home() {
           <Navbar.Brand>Checkboxing</Navbar.Brand>
           <Navbar.Collapse>
             <Nav>
-              <Nav.Link disabled={state.type === 'highscore'} onClick={() => { setState({ type: 'highscore' }); history.pushState({ type: 'highscore' }, '') }}>High Score</Nav.Link>
+              <Nav.Link disabled={state.type === 'highscore'} onClick={() => { const pushedState: State = { type: 'highscore' }; history.pushState(pushedState, ''); setState(pushedState); }}>High Score</Nav.Link>
               <Nav.Link disabled={state.type === 'play'} onClick={() => {
-                setState({
-                  type: 'play', play: {
+                const pushedState: State = {
+                  type: 'play',
+                  play: {
                     type: 'selectRows',
                     numRows: MIN_ROWS,
                   }
-                }); history.pushState({ type: 'play' }, '')
+                }
+                history.pushState(pushedState, '');
+                setState(pushedState);
               }}>Play</Nav.Link>
-              <Nav.Link disabled={state.type === 'about'} onClick={() => { setState({ type: 'about' }); history.pushState({ type: 'about' }, '') }}>About</Nav.Link>
+              <Nav.Link disabled={state.type === 'about'} onClick={() => { const pushedState: State = { type: 'about' }; history.pushState(pushedState, ''); setState(pushedState); }}>About</Nav.Link>
             </Nav>
           </Navbar.Collapse>
           {/* </Container> */}
