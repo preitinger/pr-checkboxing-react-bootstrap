@@ -1,18 +1,16 @@
 # TODO
 
-- Konzept für Lebenszyklus von Spielen
+- <s>Konzept für Lebenszyklus von Spielen
     - Wann wird Spiel gelöscht?
-        - Wenn beendet, klar...
-        - Regelmäßig alle löschen, die eine gewisse Zeit lang nicht fortgesetzt wurden?
-- Letztes Spiel fortsetzen, wenn zur Seite zurückgekehrt wird, außer nach gewissem Timeout.
+        - Regelmäßig alle löschen, die eine gewisse Zeit lang nicht geändert wurden?</s>
 - Highscore
-    - Datenbankeintrag nach jedem menschlichem Sieg mit
-        - Name
-        - Reihenzahl im Spiel
-        - Spieldauer in ms
-    - Im Highscore wird wie folgt sortiert:
+    - Datenbankeintrag nach jedem menschlichen Sieg mit
+        - ~~Name~~
+        - ~~Reihenzahl im Spiel~~
+        - ~~Spieldauer in ms~~
+        - Datum und Uhrzeit des Endes des entsprechenden Spiels~~
+    - <s>Im Highscore wird wie folgt sortiert:
         1. absteigend nach Reihenzahl
-        1. aufsteigend nach Spieldauer
-- Stoppuhr während des Spiels anzeigen
-- Button für Spielregeln in "Play-Seite".
-- Date-Eintrag in Collection highScore
+        1. aufsteigend nach Spieldauer</s>
+- **Stoppuhr während des Spiels anzeigen**
+- ~~Button für Spielregeln in "Play-Seite".~~

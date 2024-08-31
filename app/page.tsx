@@ -18,6 +18,7 @@ import Button from "react-bootstrap/Button";
 import { gameStart, getHighScore, highScoreEntry, humanMove } from "./_lib/serverActions";
 import { GameRow, HighScoreEntry, Move, processMove, SubRow } from "./_lib/GameCommon";
 import { ButtonGroup, Modal, Table } from "react-bootstrap";
+import Rules from "./Rules";
 
 interface HighScoreProps {
   entries: HighScoreEntry[];
@@ -111,6 +112,7 @@ interface PlayProps {
 }
 
 function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, onLeave, onConfirm, onUndo, onNewGame }: PlayProps) {
+  const [rulesVisible, setRulesVisible] = useState(false);
   const endImgRef = useRef<HTMLDivElement>(null);
 
   if (playState == null) throw new Error('playState nullish?!');
@@ -162,7 +164,10 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
                 {/* <Image className='d-xs-block d-lg-none' src='/brain.png' alt='Brain' width={105} height={90} />
                 <Image className='d-none d-lg-block' src='/brain.png' alt='Brain' width={210} height={180} /> */}
 
-                <Button className='m-3' variant={playState.type === 'humanWon' || playState.type === 'computerWon' ? 'primary' : 'secondary'} onClick={onNewGame}>New Game</Button>
+                <Button className='m-3' variant={playState.type === 'humanWon' || playState.type === 'computerWon' ? 'primary' : 'secondary'} onClick={onNewGame}>
+                  New Game
+                </Button>
+                <Button className='m-3' variant='link' onClick={() => setRulesVisible(true)}>Rules</Button>
                 {playState.rows.map((row, i) => <RowComp
                   key={i}
                   row={row}
@@ -215,6 +220,15 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
 
               </Col>
             </Row>
+            <Modal show={rulesVisible} onHide={() => setRulesVisible(false)}>
+              <Modal.Header closeButton><h4>Game Rules</h4></Modal.Header>
+              <Modal.Body>
+                <div style={{ maxHeight: '80vh', overflow: 'auto' }}>
+                  <Rules withoutHeader />
+                </div>
+              </Modal.Body>
+
+            </Modal>
           </> :
           <></>
       }
@@ -226,9 +240,7 @@ function About() {
   return (<>
     <h3>About</h3>
     <p>This is a little puzzle game created as a finger exercise to test the UI framework &quot;React Bootstrap&quot;.</p>
-    <h4>Game Rules</h4>
-    <p>Two players play against each other making moves alternately. Making a move means selecting some connected checkboxes in a row and striking, i.e. checking, them. The selected checkboxes must not be interrupted by checkboxes that have already been checked, earlier.</p>
-    <p>The player who is forced to check the last checkbox loses the game.</p>
+    <Rules />
     <ImgAttributions attributions={myImgAttributions} />
   </>)
 }
