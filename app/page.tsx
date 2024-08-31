@@ -71,7 +71,7 @@ function SubRowComp({ subRow, hover, emphasize, startBox, endBox, onClick, onEnt
   return (
     <div className={`d-flex justify-content-center ${!subRow.checked && hover ? styles.hover : emphasize ? styles.emphasize : ''}`}>
       {Array.from({ length: subRow.len }).map((_, i) =>
-        <Form.Check key={i} className={`m-1 ${!hover && !emphasize ? styles.forbidden : ''}`} readOnly={true} checked={subRow.checked || (minBox != null && maxBox != null && minBox <= i && maxBox >= i)} onClick={() => onClick(i)} onMouseEnter={() => onEnter(i)} onMouseLeave={() => onLeave(i)}></Form.Check>)
+        <Form.Check key={i} className={`m-2 ${!hover && !emphasize ? styles.forbidden : ''}`} readOnly={true} checked={subRow.checked || (minBox != null && maxBox != null && minBox <= i && maxBox >= i)} onClick={() => onClick(i)} onMouseEnter={() => onEnter(i)} onMouseLeave={() => onLeave(i)}></Form.Check>)
       }
     </div>
   )
