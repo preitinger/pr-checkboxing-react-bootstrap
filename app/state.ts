@@ -230,7 +230,7 @@ export function leaveBox(state: State, row: number, subRow: number, box: number)
     return state;
 }
 
-export function confirmMove(state: State): State {
+export function confirmMove1(state: State): State {
     switch (state.type) {
         case 'play':
             switch (state.play.type) {
@@ -267,6 +267,11 @@ export function confirmMove(state: State): State {
     }
 
     return state;
+}
+
+export function confirmMove(state: State): State {
+    const res = confirmMove1(state);
+    return res;
 }
 
 export function undoMove(state: State): State {

@@ -1,15 +1,28 @@
 'use server'
 
-import { ObjectId } from "mongodb";
-import { containsUncheckedSubRow, GameRow, mkRows, Move, processMove } from "./GameCommon";
+import { Db, ObjectId } from "mongodb";
+import { containsUncheckedSubRow, GameRow, HighScoreEntry, mkRows, Move, processMove } from "./GameCommon";
 import clientPromise from "./mongodb"
 import assert from "assert";
 
+interface GameEnd {
+    time: number;
+    winner: 'human' | 'computer';
+}
+
 interface GameDoc {
+    /**
+     * start time of the game in ms since the epoch.
+     */
+    start: number;
     rows: GameRow[];
     humanStarts: boolean;
     moves: Move[];
+    end: null | GameEnd;
+    lastModification: Date;
 }
+
+type HighScoreDoc = HighScoreEntry;
 
 function xorSum(rows: GameRow[]): number {
     let x = 0;
@@ -112,9 +125,12 @@ export async function gameStart(numRows: number, humanStarts: boolean): Promise<
 
     const col = db.collection<GameDoc>('games');
     const res = await col.insertOne({
+        start: Date.now(),
         rows: rows,
         humanStarts: humanStarts,
-        moves: computerMove == null ? [] : [computerMove]
+        moves: computerMove == null ? [] : [computerMove],
+        end: null,
+        lastModification: new Date(),
     })
 
     if (!res.acknowledged) throw new Error('insertion of GameDoc was not acknowledged');
@@ -128,23 +144,36 @@ export async function gameStart(numRows: number, humanStarts: boolean): Promise<
  * @returns next computer move if game is not over, otherwise null
  */
 export async function humanMove(id: string, move: Move): Promise<Move | null> {
+    const now = Date.now();
     const client = await clientPromise;
     const db = client.db('pr-checkboxing-react-bootstrap');
     const col = db.collection<GameDoc>('games');
     const objectId = new ObjectId(id);
     const doc = await col.findOne({
         _id: objectId
+    }, {
+        projection: {
+            start: 1,
+            rows: 1,
+        }
     })
     if (doc == null) throw new Error('Game not found');
     const rowsAfterHumanMove = processMove(doc.rows, move);
     if (containsUncheckedSubRow(rowsAfterHumanMove)) {
         const computerMove = findComputerMove(rowsAfterHumanMove);
         const rowsAfterComputerMove = processMove(rowsAfterHumanMove, computerMove);
+        const end: null | GameEnd = containsUncheckedSubRow(rowsAfterComputerMove) ? null
+            : {
+                time: now,
+                winner: 'human'
+            }
         const updateRes = await col.updateOne({
             _id: objectId
         }, {
             $set: {
-                rows: rowsAfterComputerMove
+                rows: rowsAfterComputerMove,
+                end: end,
+                lastModification: new Date(),
             },
             $push: {
                 moves: { $each: [move, computerMove] }
@@ -158,7 +187,12 @@ export async function humanMove(id: string, move: Move): Promise<Move | null> {
             _id: objectId
         }, {
             $set: {
-                rows: rowsAfterHumanMove
+                rows: rowsAfterHumanMove,
+                end: {
+                    time: now,
+                    winner: 'computer'
+                },
+                lastModification: new Date(),
             },
             $push: {
                 moves: move
@@ -169,4 +203,46 @@ export async function humanMove(id: string, move: Move): Promise<Move | null> {
 
         return null;
     }
+}
+
+export async function highScoreEntry(gameId: string, name: string) {
+    if (name.length > 32) name = name.substring(0, 32);
+    const client = await clientPromise;
+    const db = client.db('pr-checkboxing-react-bootstrap');
+    const col = db.collection<GameDoc>('games');
+    const objectId = new ObjectId(gameId);
+    const doc = await col.findOneAndDelete({
+        _id: objectId
+    }, {
+        projection: {
+            start: 1,
+            end: 1,
+            rows: 1,
+        }
+    })
+    if (doc == null) throw new Error('Game not found');
+    if (doc.end?.winner !== 'human') throw new Error('The game has not (yet) been won by the human.');
+
+    const hsCol = db.collection<HighScoreDoc>('highScore');
+    const hsRes = await hsCol.insertOne({
+        numRows: doc.rows.length,
+        durationMs: doc.end.time - doc.start,
+        name,
+    })
+    if (!hsRes.acknowledged) throw new Error('Insertion of high score entry not acknowledged.');
+
+}
+
+export async function getHighScore(): Promise<HighScoreEntry[]> {
+    const client = await clientPromise;
+    const db = client.db('pr-checkboxing-react-bootstrap');
+    const hsCol = db.collection<HighScoreDoc>('highScore');
+    const cursor = hsCol.find({}).sort({ durationMs: 1 }).sort({ numRows: -1 }).limit(100);
+    const hs = await cursor.toArray();
+    return hs.map(e => ({
+        numRows: e.numRows,
+        durationMs: e.durationMs,
+        name: e.name
+    }));
+
 }

@@ -15,10 +15,14 @@ import { PlayState, State, MIN_ROWS, MAX_ROWS, selectRows, selectStarter, select
 import styles from './page.module.css';
 import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
-import { gameStart, humanMove } from "./_lib/serverActions";
-import { GameRow, Move, processMove, SubRow } from "./_lib/GameCommon";
+import { gameStart, getHighScore, highScoreEntry, humanMove } from "./_lib/serverActions";
+import { GameRow, HighScoreEntry, Move, processMove, SubRow } from "./_lib/GameCommon";
+import { ButtonGroup, Modal, Table } from "react-bootstrap";
 
-function HighScore() {
+interface HighScoreProps {
+  entries: HighScoreEntry[];
+}
+function HighScore({ entries }: HighScoreProps) {
   return (
     <>
       {/* <h1 className='mb-3'>High Score</h1> */}
@@ -31,10 +35,19 @@ function HighScore() {
           </div>
         </Col>
         <Col className='d-flex flex-column justify-content-center' >
-          <ListGroup numbered className='mb-3'>
-            <ListGroup.Item>Peter</ListGroup.Item>
-            <ListGroup.Item>Paul</ListGroup.Item>
-          </ListGroup>
+          <Table>
+            <tbody>
+              <tr>
+                <th>Rank</th><th>Name</th><th>Rows</th><th>Time</th>
+              </tr>
+              {entries.map((e, i) => <tr key={i}>
+                <td>{i + 1}</td>
+                <td>{e.name}</td>
+                <td>{e.numRows}</td>
+                <td>{e.durationMs / 1000} sec</td>
+              </tr>)}
+            </tbody>
+          </Table>
         </Col>
       </Row>
     </>
@@ -101,7 +114,6 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
   const endImgRef = useRef<HTMLDivElement>(null);
 
   if (playState == null) throw new Error('playState nullish?!');
-  console.log('Play: playState', playState);
 
   useEffect(() => {
     if ((playState.type === 'humanWon' || playState.type === 'computerWon') && endImgRef.current != null) {
@@ -191,7 +203,7 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
                   playState.type === 'humanWon' && <div ref={endImgRef} className='mt-4 d-flex flex-column align-items-center'>
                     <h1 style={{ textAlign: 'center' }}>You won!</h1>
                     {/* <Image src='/7379644_32301.jpg' width={400} height={492} alt='You won!' /> */}
-                    <img src='/tenor.gif' alt='champagne' />
+                    <Image style={{ maxWidth: '100vw', height: 'auto' }} alt='Champagne' src='/tenor.gif' width={576} height={576} />
                   </div>
                 }
                 {
@@ -223,19 +235,39 @@ function About() {
 
 export default function Home() {
   const [state, setState] = useState<State>({ type: 'highscore' });
+  const [enteringHighScore, setEnteringHighScore] = useState(false);
+  const [name, setName] = useState('');
+  const [highScoreEntries, setHighScoreEntries] = useState<HighScoreEntry[]>([]);
   const gameId = useRef<string>('');
+
+  function addHighScoreEntry() {
+    setEnteringHighScore(false);
+    const id = gameId.current;
+    if (id) {
+      highScoreEntry(gameId.current, name).then(() => {
+      }).catch(reason => {
+        console.error(reason);
+      })
+    }
+
+  }
+
+  function cancelHighScoreEntry() {
+    setEnteringHighScore(false);
+  }
 
   useEffect(() => {
     function onPopState(e: PopStateEvent) {
       if ('type' in e.state && e.state.type === 'highscore' || e.state.type === 'play') {
-        console.error('hier problem?', e.state)
         setState(e.state);
       } else {
-        console.error('oder hier problem?')
         setState({ type: 'highscore' });
       }
     }
     window.addEventListener('popstate', onPopState)
+
+    getHighScore().then(entries => setHighScoreEntries(entries));
+
     // history.replaceState({type: 'highscore'}, '')
     return () => {
       window.removeEventListener('popstate', onPopState);
@@ -262,13 +294,18 @@ export default function Home() {
         startBox: state.play.startBox,
         endBox: state.play.endBox
       }
+      const stateAfterConfirm = confirmMove(state);
       humanMove(gameId.current, move).then(computerMove => {
         if (computerMove != null) {
-          setState(d => processComputerMove(d, computerMove))
+          const newState = processComputerMove(stateAfterConfirm, computerMove)
+          setState(newState);
+          if (newState.type === 'play' && newState.play.type === 'humanWon') {
+            setEnteringHighScore(true);
+          }
         }
       })
 
-      setState(d => confirmMove(d));
+      setState(stateAfterConfirm);
     }
   }
 
@@ -314,7 +351,7 @@ export default function Home() {
         </Navbar>
         <hr className='mb-5' />
         {state.type === 'highscore' &&
-          <HighScore />
+          <HighScore entries={highScoreEntries} />
         }
         {state.type === 'play' &&
           <Play
@@ -348,6 +385,20 @@ export default function Home() {
         {state.type === 'about' &&
           <About />
         }
+        <Modal show={enteringHighScore} onHide={cancelHighScoreEntry}>
+          <Modal.Header closeButton>High Score Entry</Modal.Header>
+          <Modal.Body>
+            <Form.Group className='mb-3'>
+              <Form.Label>Name for your high score entry</Form.Label>
+              <Form.Control type='text' value={name} onChange={(e) => setName(e.target.value)} />
+            </Form.Group>
+            <div className='d-flex flex-col justify-content-end'>
+              <Button variant='primary' className='m-1' onClick={addHighScoreEntry}>Add High Score Entry</Button>
+              <Button className='m-1' variant='secondary' onClick={cancelHighScoreEntry}>Cancel</Button>
+            </div>
+          </Modal.Body>
+        </Modal>
+
       </Container>
     </>
   );

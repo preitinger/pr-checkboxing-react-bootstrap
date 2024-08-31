@@ -78,3 +78,10 @@ export function containsUncheckedSubRow(rows: GameRow[]): boolean {
 
     return false;
 }
+
+
+export interface HighScoreEntry {
+    numRows: number;
+    durationMs: number;
+    name: string;
+}
