@@ -218,7 +218,7 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
         playState.type === 'computerMove' || playState.type === 'selectSubRow' || playState.type === 'selectStrikeEnd' || playState.type === 'confirm' || playState.type === 'computerWon' || playState.type === 'humanWon' ?
           <>
             <Row className='align-items-center'>
-              <Col xs={12} lg={6} className='mb-3'>
+              <Col xs={12} lg={6} className='mb-3 bg-light rounded' >
                 {/* <Image className='d-xs-block d-lg-none' src='/brain.png' alt='Brain' width={105} height={90} />
                 <Image className='d-none d-lg-block' src='/brain.png' alt='Brain' width={210} height={180} /> */}
 
@@ -231,20 +231,22 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
                   <Button size='sm' variant='secondary' onClick={onUndo}>Undo</Button>
                 </>
                 }
-                {playState.rows.map((row, i) => <RowComp
-                  key={i}
-                  row={row}
-                  hover={playState.type === 'selectSubRow'}
-                  subRow={playState.type === 'selectSubRow' && playState.hovered?.row === i ? playState.hovered?.subRow
-                    : (playState.type === 'selectStrikeEnd' || playState.type === 'confirm') && playState.row === i ? playState.subRow : undefined}
-                  startBox={playState.type === 'selectSubRow' && playState.hovered?.row === i ? playState.hovered?.startBox
-                    : (playState.type === 'selectStrikeEnd' || playState.type === 'confirm') && playState.row === i ? playState.startBox : undefined}
-                  endBox={playState.type === 'selectSubRow' && playState.hovered?.row === i ? playState.hovered?.startBox
-                    : (playState.type === 'selectStrikeEnd' || playState.type === 'confirm') && playState.row === i ? playState.endBox : undefined}
-                  onClick={(subRow, box) => onClick(i, subRow, box)}
-                  onEnter={(subRow, box) => onEnter(i, subRow, box)}
-                  onLeave={(subRow, box) => onLeave(i, subRow, box)}
-                />)}
+                <div>
+                  {playState.rows.map((row, i) => <RowComp
+                    key={i}
+                    row={row}
+                    hover={playState.type === 'selectSubRow'}
+                    subRow={playState.type === 'selectSubRow' && playState.hovered?.row === i ? playState.hovered?.subRow
+                      : (playState.type === 'selectStrikeEnd' || playState.type === 'confirm') && playState.row === i ? playState.subRow : undefined}
+                    startBox={playState.type === 'selectSubRow' && playState.hovered?.row === i ? playState.hovered?.startBox
+                      : (playState.type === 'selectStrikeEnd' || playState.type === 'confirm') && playState.row === i ? playState.startBox : undefined}
+                    endBox={playState.type === 'selectSubRow' && playState.hovered?.row === i ? playState.hovered?.startBox
+                      : (playState.type === 'selectStrikeEnd' || playState.type === 'confirm') && playState.row === i ? playState.endBox : undefined}
+                    onClick={(subRow, box) => onClick(i, subRow, box)}
+                    onEnter={(subRow, box) => onEnter(i, subRow, box)}
+                    onLeave={(subRow, box) => onLeave(i, subRow, box)}
+                  />)}
+                </div>
               </Col>
               <Col xs={12} lg={6} className='ms-xs-auto ms-md-0 me-auto mb-3'>
                 {
