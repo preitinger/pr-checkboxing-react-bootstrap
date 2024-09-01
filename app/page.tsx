@@ -222,7 +222,7 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
         playState.type === 'computerMove' || playState.type === 'selectSubRow' || playState.type === 'selectStrikeEnd' || playState.type === 'confirm' || playState.type === 'computerWon' || playState.type === 'humanWon' ?
           <>
             <Row className='align-items-center'>
-              <Col xs={12} lg={6} className='mb-3 bg-light rounded' >
+              <Col xs={12} lg={6} className='mb-3 bg-dark rounded' >
                 {/* <Image className='d-xs-block d-lg-none' src='/brain.png' alt='Brain' width={105} height={90} />
                 <Image className='d-none d-lg-block' src='/brain.png' alt='Brain' width={210} height={180} /> */}
 
