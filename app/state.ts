@@ -9,6 +9,11 @@ export interface HoveredSubRow {
 export const MIN_ROWS = 7;
 export const MAX_ROWS = 10;
 
+export interface LastComputerMove {
+    row: number;
+    subRow: number;
+}
+
 export type PlayState = {
     type: 'selectRows';
     numRows: number;
@@ -25,10 +30,12 @@ export type PlayState = {
     rows: GameRow[];
     humanStarts: boolean;
     hovered: null | HoveredSubRow;
+    lastComputerMove: null | LastComputerMove;
 } | {
     type: 'selectStrikeEnd'
     rows: GameRow[];
     humanStarts: boolean;
+    lastComputerMove: null | LastComputerMove;
     row: number;
     subRow: number;
     startBox: number;
@@ -37,6 +44,7 @@ export type PlayState = {
     type: 'confirm'
     rows: GameRow[];
     humanStarts: boolean;
+    lastComputerMove: null | LastComputerMove;
     row: number;
     subRow: number;
     startBox: number;
@@ -49,6 +57,7 @@ export type PlayState = {
     type: 'humanWon'
     rows: GameRow[];
     humanStarts: boolean;
+    lastComputerMove: null | LastComputerMove;
 }
 
 export type State = {
@@ -77,7 +86,7 @@ export function selectRows(state: State, rows: number): State {
                             ...state.play,
                             numRows: rows,
                             type: 'selectStarter',
-                            humanStarts: true
+                            humanStarts: true,
                         }
                     }
                 default:
@@ -111,7 +120,7 @@ export function selectStarter(state: State, humanStarts: boolean): State {
                             rows: mkRows(state.play.numRows),
                             humanStarts: humanStarts,
                             hovered: null,
-
+                            lastComputerMove: null
                         } : {
                             type: 'computerMove',
                             rows: mkRows(state.play.numRows),
@@ -138,6 +147,7 @@ export function selectBox1(state: State, row: number, subRow: number, box: numbe
                             type: 'selectStrikeEnd',
                             rows: state.play.rows,
                             humanStarts: state.play.humanStarts,
+                            lastComputerMove: state.play.lastComputerMove,
                             row: row,
                             subRow: subRow,
                             startBox: box,
@@ -152,6 +162,7 @@ export function selectBox1(state: State, row: number, subRow: number, box: numbe
                                 type: 'confirm',
                                 rows: state.play.rows,
                                 humanStarts: state.play.humanStarts,
+                                lastComputerMove: state.play.lastComputerMove,
                                 row: state.play.row,
                                 subRow: state.play.subRow,
                                 startBox: state.play.startBox,
@@ -298,6 +309,7 @@ export function undoMove(state: State): State {
                             rows: state.play.rows,
                             type: 'selectSubRow',
                             hovered: null,
+                            lastComputerMove: state.play.lastComputerMove
                         }
                     }
             }
@@ -312,13 +324,19 @@ export function processComputerMove(state: State, move: Move): State {
             switch (state.play.type) {
                 case 'computerMove':
                     const newRows = processMove(state.play.rows, move);
+                    const computerSubRow = newRows[move.row].subRows[move.subRow].checked ? move.subRow : move.subRow + 1;
+                    const notGameOver = containsUncheckedSubRow(newRows);
                     return {
                         ...state,
                         play: {
                             ...state.play,
                             rows: newRows,
-                            type: containsUncheckedSubRow(newRows) ? 'selectSubRow' : 'humanWon',
-                            hovered: null
+                            type: notGameOver ? 'selectSubRow' : 'humanWon',
+                            hovered: null,
+                            lastComputerMove: {
+                                row: move.row,
+                                subRow: computerSubRow
+                            }
                         }
                     }
             }

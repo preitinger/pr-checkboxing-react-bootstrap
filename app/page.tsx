@@ -11,7 +11,7 @@ import Row from "react-bootstrap/Row";
 import Container from "react-bootstrap/Container";
 import ImgAttributions from "./_lib/ImgAttributions";
 import { myImgAttributions } from "./myImgAttributions";
-import { PlayState, State, MIN_ROWS, MAX_ROWS, selectRows, selectStarter, selectBox, HoveredSubRow, enterBox, leaveBox, processComputerMove, confirmMove, undoMove } from "./state";
+import { PlayState, State, MIN_ROWS, MAX_ROWS, selectRows, selectStarter, selectBox, HoveredSubRow, enterBox, leaveBox, processComputerMove, confirmMove, undoMove, LastComputerMove } from "./state";
 import styles from './page.module.css';
 import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
@@ -114,11 +114,12 @@ function HighScore({ page, pageSize, setPage }: HighScoreProps) {
   )
 }
 
-function SubRowComp({ subRow, hover, emphasize, startBox, endBox, onClick, onEnter, onLeave }:
+function SubRowComp({ subRow, hover, emphasize, startBox, endBox, computerSubRow, onClick, onEnter, onLeave }:
   {
     subRow: SubRow;
     hover: boolean;
     emphasize: boolean;
+    computerSubRow: boolean;
     startBox?: number;
     endBox?: number;
     onClick: (box: number) => void;
@@ -127,8 +128,9 @@ function SubRowComp({ subRow, hover, emphasize, startBox, endBox, onClick, onEnt
   }) {
   const minBox = startBox != null && endBox != null ? Math.min(startBox, endBox) : undefined;
   const maxBox = startBox != null && endBox != null ? Math.max(startBox, endBox) : undefined;
+  console.log('computerSubRow', computerSubRow);
   return (
-    <div className={`d-flex justify-content-center ${!subRow.checked && hover ? styles.hover : emphasize ? styles.emphasize : ''}`}>
+    <div className={`d-flex justify-content-center ${!subRow.checked && hover ? styles.hover : emphasize ? styles.emphasize : computerSubRow ? styles.lastComputerMove : ''}`}>
       {Array.from({ length: subRow.len }).map((_, i) =>
         <Form.Check key={i} className={`m-2 ${!hover && !emphasize ? styles.forbidden : ''}`} readOnly={true} checked={subRow.checked || (minBox != null && maxBox != null && minBox <= i && maxBox >= i)} onClick={() => onClick(i)} onMouseEnter={() => onEnter(i)} onMouseLeave={() => onLeave(i)}></Form.Check>)
       }
@@ -136,21 +138,23 @@ function SubRowComp({ subRow, hover, emphasize, startBox, endBox, onClick, onEnt
   )
 }
 
-function RowComp({ row, hover, subRow, startBox, endBox, onClick, onEnter, onLeave }:
+function RowComp({ row, hover, subRow, startBox, endBox, lastComputerSubRow, onClick, onEnter, onLeave }:
   {
     row: GameRow;
     hover: boolean;
     subRow?: number;
     startBox?: number;
     endBox?: number;
+    lastComputerSubRow?: number;
     onClick: (subRow: number, box: number) => void;
     onEnter: (subRow: number, box: number) => void;
     onLeave: (subRow: number, box: number) => void;
   }) {
+    console.log('lastComputerSubRow', lastComputerSubRow);
   return (
     <div className='d-flex justify-content-center'>
       {row.subRows.map((subRow1, i) => <SubRowComp key={i} subRow={subRow1} hover={hover} startBox={subRow === i ? startBox : undefined} endBox={subRow === i ? endBox : undefined}
-        emphasize={subRow === i} onClick={(box) => {
+        emphasize={subRow === i} computerSubRow={lastComputerSubRow === i} onClick={(box) => {
           onClick(i, box);
         }} onEnter={(box) => onEnter(i, box)} onLeave={(box) => onLeave(i, box)} />)}
     </div>
@@ -242,6 +246,7 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
                       : (playState.type === 'selectStrikeEnd' || playState.type === 'confirm') && playState.row === i ? playState.startBox : undefined}
                     endBox={playState.type === 'selectSubRow' && playState.hovered?.row === i ? playState.hovered?.startBox
                       : (playState.type === 'selectStrikeEnd' || playState.type === 'confirm') && playState.row === i ? playState.endBox : undefined}
+                    lastComputerSubRow={(playState.type === 'humanWon' || playState.type === 'selectSubRow' || playState.type === 'selectStrikeEnd' || playState.type === 'confirm') && playState.lastComputerMove?.row === i ? playState.lastComputerMove.subRow ?? undefined : undefined}
                     onClick={(subRow, box) => onClick(i, subRow, box)}
                     onEnter={(subRow, box) => onEnter(i, subRow, box)}
                     onLeave={(subRow, box) => onLeave(i, subRow, box)}
@@ -372,6 +377,7 @@ export default function Home() {
       humanMove(gameId.current, move).then(computerMove => {
         if (computerMove != null) {
           const newState = processComputerMove(stateAfterConfirm, computerMove)
+          console.log('newState', newState);
           setState(newState);
           if (newState.type === 'play' && newState.play.type === 'humanWon') {
             setEnteringHighScore(true);

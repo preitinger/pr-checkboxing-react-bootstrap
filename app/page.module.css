@@ -21,3 +21,6 @@
 .forbidden input[type='checkbox'] {
     cursor: not-allowed !important;
 }
+.lastComputerMove {
+    background-color: var(--bs-warning);
+}
