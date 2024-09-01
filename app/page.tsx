@@ -225,7 +225,7 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
                 <Button className='m-3' size='sm' variant={playState.type === 'humanWon' || playState.type === 'computerWon' ? 'primary' : 'secondary'} onClick={onNewGame}>
                   New Game
                 </Button>
-                <Button className='m-3' size='sm' variant='link' onClick={() => setRulesVisible(true)}>Rules</Button>
+                <Button className='m-3' size='sm' variant='secondary' onClick={() => setRulesVisible(true)}>Rules</Button>
                 {(playState.type === 'confirm' || playState.type === 'selectStrikeEnd') && <>
                   <Button size='sm' variant="primary" className='me-1' onClick={onConfirm}>Confirm</Button>
                   <Button size='sm' variant='secondary' onClick={onUndo}>Undo</Button>
