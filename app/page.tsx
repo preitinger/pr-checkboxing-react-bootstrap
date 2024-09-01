@@ -1,7 +1,7 @@
 'use client'
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
 import ListGroup from "react-bootstrap/ListGroup";
@@ -17,40 +17,98 @@ import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
 import { gameStart, getHighScore, highScoreEntry, humanMove } from "./_lib/serverActions";
 import { GameRow, HighScoreEntry, Move, processMove, SubRow } from "./_lib/GameCommon";
-import { ButtonGroup, Modal, Table } from "react-bootstrap";
+import ButtonGroup from "react-bootstrap/ButtonGroup";
+import Card from "react-bootstrap/Card";
+import Modal from "react-bootstrap/Modal";
+import Pagination from "react-bootstrap/Pagination";
+import Placeholder from "react-bootstrap/Placeholder";
+import Table from "react-bootstrap/Table";
 import Rules from "./Rules";
 
 interface HighScoreProps {
-  entries: HighScoreEntry[];
+  page: number;
+  pageSize: number;
+  setPage: (page: number) => void;
 }
-function HighScore({ entries }: HighScoreProps) {
+
+const HIGH_SCORE_PAGE_SIZE = 100;
+
+function HighScore({ page, pageSize, setPage }: HighScoreProps) {
+  const [entries, setEntries] = useState<null | HighScoreEntry[]>(null);
+
+  useEffect(() => {
+
+    getHighScore(page, pageSize).then(entries1 => setEntries(entries1));
+
+  }, [page, pageSize])
+
+  const detailedMin = Math.max(0, page - 2);
+  const detailedMax = page + 2;
+
+  const onPage = (p: number) => () => {
+    if (p === page) return;
+    setPage(p);
+  }
+
+  const pageItemStyle: CSSProperties = { /* width: '6ex', */ textAlign: 'center' };
+  function pageItem(p: number, key?: number) {
+    return <Pagination.Item key={key} style={pageItemStyle} onClick={onPage(p)}>{p + 1}</Pagination.Item>
+  }
+
   return (
     <>
       {/* <h1 className='mb-3'>High Score</h1> */}
       {/* <h2 className='mb-3'>High Score</h2> */}
-      <Row >
+      <Row>
         <Col className='d-flex flex-column align-items-center'>
           <div className='position-relative'>
             <h3 style={{ position: 'absolute', top: '0', left: '0', width: '100%', textAlign: 'center' }}>High Score</h3>
             <Image className='' src='/7379644_32301.jpg' alt='Trophy' width={400} height={492} />
           </div>
         </Col>
-        <Col className='d-flex flex-column justify-content-center' >
-          <Table>
-            <tbody>
-              <tr>
-                <th>Rank</th><th>Name</th><th>Rows</th><th>Time</th>
-              </tr>
-              {entries.map((e, i) => <tr key={i}>
-                <td>{i + 1}</td>
-                <td>{e.name}</td>
-                <td>{e.numRows}</td>
-                <td>{e.durationMs / 1000} sec</td>
-              </tr>)}
-            </tbody>
-          </Table>
+        <Col>
+          <div className='overflow-auto border mb-3' style={{ height: '80vh' }} >
+            <Table >
+              <tbody>
+                <tr>
+                  <th>Rank</th><th>Name</th><th>Rows</th><th>Time</th>
+                </tr>
+                {
+                  entries == null ? <tr>
+                    <td><Placeholder xs={2} /></td><td><Placeholder xs={5} /></td><td><Placeholder xs={2} /></td><td><Placeholder xs={6} /></td>
+                  </tr> :
+                    entries.map((e, i) => <tr key={i}>
+                      <td>{page * pageSize + i + 1}</td>
+                      <td>{e.name}</td>
+                      <td>{e.numRows}</td>
+                      <td>{e.durationMs / 1000} sec</td>
+                    </tr>)}
+              </tbody>
+            </Table>
+          </div>
+          <Pagination>
+            <Pagination.First style={pageItemStyle} active={page === 0} onClick={onPage(0)} />
+            <Pagination.Prev style={pageItemStyle} disabled={page === 0} onClick={page > 0 ? onPage(page - 1) : undefined} />
+            {
+              detailedMin > 0 && <Pagination.Ellipsis style={pageItemStyle} onClick={onPage(Math.max(0, page - 20))} />
+            }
+
+            {
+              Array.from({
+                length: page - detailedMin
+              }).map((_, i) => pageItem(detailedMin + i, i))
+            }
+            <Pagination.Item style={pageItemStyle} active>{page + 1}</Pagination.Item>
+            {
+              Array.from({
+                length: detailedMax - page
+              }).map((_, i) => pageItem(page + 1 + i, i))
+            }
+            <Pagination.Ellipsis onClick={onPage(page + 20)} />
+            <Pagination.Next onClick={onPage(page + 1)} />
+          </Pagination>
         </Col>
-      </Row>
+      </Row >
     </>
 
   )
@@ -164,10 +222,15 @@ function Play({ playState, rowsSelected, humanStartsSelected, onClick, onEnter, 
                 {/* <Image className='d-xs-block d-lg-none' src='/brain.png' alt='Brain' width={105} height={90} />
                 <Image className='d-none d-lg-block' src='/brain.png' alt='Brain' width={210} height={180} /> */}
 
-                <Button className='m-3' variant={playState.type === 'humanWon' || playState.type === 'computerWon' ? 'primary' : 'secondary'} onClick={onNewGame}>
+                <Button className='m-3' size='sm' variant={playState.type === 'humanWon' || playState.type === 'computerWon' ? 'primary' : 'secondary'} onClick={onNewGame}>
                   New Game
                 </Button>
-                <Button className='m-3' variant='link' onClick={() => setRulesVisible(true)}>Rules</Button>
+                <Button className='m-3' size='sm' variant='link' onClick={() => setRulesVisible(true)}>Rules</Button>
+                {(playState.type === 'confirm' || playState.type === 'selectStrikeEnd') && <>
+                  <Button size='sm' variant="primary" className='me-1' onClick={onConfirm}>Confirm</Button>
+                  <Button size='sm' variant='secondary' onClick={onUndo}>Undo</Button>
+                </>
+                }
                 {playState.rows.map((row, i) => <RowComp
                   key={i}
                   row={row}
@@ -246,10 +309,9 @@ function About() {
 }
 
 export default function Home() {
-  const [state, setState] = useState<State>({ type: 'highscore' });
+  const [state, setState] = useState<State>({ type: 'highscore', page: 0, pageSize: 100 });
   const [enteringHighScore, setEnteringHighScore] = useState(false);
   const [name, setName] = useState('');
-  const [highScoreEntries, setHighScoreEntries] = useState<HighScoreEntry[]>([]);
   const gameId = useRef<string>('');
 
   function addHighScoreEntry() {
@@ -273,12 +335,10 @@ export default function Home() {
       if ('type' in e.state && e.state.type === 'highscore' || e.state.type === 'play') {
         setState(e.state);
       } else {
-        setState({ type: 'highscore' });
+        setState({ type: 'highscore', page: 0, pageSize: 100 });
       }
     }
     window.addEventListener('popstate', onPopState)
-
-    getHighScore().then(entries => setHighScoreEntries(entries));
 
     // history.replaceState({type: 'highscore'}, '')
     return () => {
@@ -327,6 +387,8 @@ export default function Home() {
 
   function onNewGame() {
     setState({
+      page: state.page,
+      pageSize: state.pageSize,
       type: 'play',
       play: {
         type: 'selectRows',
@@ -344,9 +406,11 @@ export default function Home() {
           <Navbar.Brand>Checkboxing</Navbar.Brand>
           <Navbar.Collapse>
             <Nav>
-              <Nav.Link disabled={state.type === 'highscore'} onClick={() => { const pushedState: State = { type: 'highscore' }; history.pushState(pushedState, ''); setState(pushedState); }}>High Score</Nav.Link>
+              <Nav.Link disabled={state.type === 'highscore'} onClick={() => { const pushedState: State = { type: 'highscore', page: 0, pageSize: 100 }; history.pushState(pushedState, ''); setState(pushedState); }}>High Score</Nav.Link>
               <Nav.Link disabled={state.type === 'play'} onClick={() => {
                 const pushedState: State = {
+                  page: state.page,
+                  pageSize: state.pageSize,
                   type: 'play',
                   play: {
                     type: 'selectRows',
@@ -356,14 +420,14 @@ export default function Home() {
                 history.pushState(pushedState, '');
                 setState(pushedState);
               }}>Play</Nav.Link>
-              <Nav.Link disabled={state.type === 'about'} onClick={() => { const pushedState: State = { type: 'about' }; history.pushState(pushedState, ''); setState(pushedState); }}>About</Nav.Link>
+              <Nav.Link disabled={state.type === 'about'} onClick={() => { const pushedState: State = { page: state.page, pageSize: state.pageSize, type: 'about' }; history.pushState(pushedState, ''); setState(pushedState); }}>About</Nav.Link>
             </Nav>
           </Navbar.Collapse>
           {/* </Container> */}
         </Navbar>
         <hr className='mb-5' />
         {state.type === 'highscore' &&
-          <HighScore entries={highScoreEntries} />
+          <HighScore page={state.page} pageSize={state.pageSize} setPage={(p: number) => setState(d => ({ ...d, page: p }))} />
         }
         {state.type === 'play' &&
           <Play

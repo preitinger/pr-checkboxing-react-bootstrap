@@ -233,11 +233,11 @@ export async function highScoreEntry(gameId: string, name: string) {
 
 }
 
-export async function getHighScore(): Promise<HighScoreEntry[]> {
+export async function getHighScore(page: number, pageSize: number): Promise<HighScoreEntry[]> {
     const client = await clientPromise;
     const db = client.db('pr-checkboxing-react-bootstrap');
     const hsCol = db.collection<HighScoreDoc>('highScore');
-    const cursor = hsCol.find({}).sort({ durationMs: 1 }).sort({ numRows: -1 }).limit(100);
+    const cursor = hsCol.find({}).sort({ durationMs: 1 }).sort({ numRows: -1 }).skip(page * pageSize).limit(100);
     const hs = await cursor.toArray();
     return hs.map(e => ({
         numRows: e.numRows,

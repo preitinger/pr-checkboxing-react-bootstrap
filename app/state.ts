@@ -52,13 +52,19 @@ export type PlayState = {
 }
 
 export type State = {
-    type: 'highscore'
-} | {
-    type: 'play';
-    play: PlayState;
-} | {
-    type: 'about'
-}
+    pageSize: number;
+    page: number;
+
+} & (
+        {
+            type: 'highscore';
+        } | {
+            type: 'play';
+            play: PlayState;
+        } | {
+            type: 'about'
+        }
+    )
 
 export function selectRows(state: State, rows: number): State {
     switch (state.type) {
@@ -246,6 +252,8 @@ export function confirmMove1(state: State): State {
                     const newRows = processMove(state.play.rows, move);
                     if (containsUncheckedSubRow(newRows)) {
                         return ({
+                            page: state.page,
+                            pageSize: state.pageSize,
                             type: 'play',
                             play: {
                                 type: 'computerMove',
@@ -255,6 +263,8 @@ export function confirmMove1(state: State): State {
                         })
                     } else {
                         return ({
+                            page: state.page,
+                            pageSize: state.pageSize,
                             type: 'play',
                             play: {
                                 type: 'computerWon',
